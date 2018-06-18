@@ -1,5 +1,21 @@
 import requests as re
 from bs4 import BeautifulSoup
+import openpyxl
+from requests.adapters import HTTPAdapter
+import time
+
+
+
+
+def UI_path_URL_list_extract(excel_path):
+    wb = openpyxl.load_workbook(excel_path)
+    sheet = wb.worksheets[0]
+    UI_path_URL_list = list()
+
+    for i in range(2,sheet.max_row ,1):
+        UI_path_URL_list.append(sheet.cell(row=i, column=column_index).value)
+    wb.close()
+    return UI_path_URL_list
 
 
 # raw_html_file = re.get('https://connect.data.com/company/view/vNTDYqDD4A0r9ybX1QtHXg/')
@@ -97,30 +113,46 @@ def find_phone_td_html(raw_row_phone_html):
 
 
 links= list()
-with open('aa.txt', 'r') as f:
-    f.readline()
+path = 'D:\Book1.xlsx'
+column_index = 3
 
-    for line in f:
-        links.append(append_URL(line))
+excel_urls = UI_path_URL_list_extract(path)
+for i in range(len(excel_urls)):
+
+    links.append(append_URL(excel_urls[i]))
+
 
 
 s = re.Session()
 s.headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.131 Safari/537.36'
+s.mount('http://', HTTPAdapter(max_retries=10))
+s.mount('https://', HTTPAdapter(max_retries=10))
 
-def return_div_html(url):
-    raw_html_file = s.get(url)
-    raw_html_content = raw_html_file.content
-    soup_html = BeautifulSoup(raw_html_content, "html.parser")
-    div_html = soup_html.findAll("div", {"class": "seo-company-info"})
-    return div_html
+def return_div_html_url_data(url):
+        try:
+            raw_html_file = s.get(url)
+        except:
+            time.sleep(5)
+        return raw_html_file
+
+
+def raw_div_html(raw_html_file):
+        raw_html_content = raw_html_file.content
+        soup_html = BeautifulSoup(raw_html_content, "html.parser")
+        div_html = soup_html.findAll("div", {"class": "seo-company-info"})
+        return div_html
+
+
+
 
 
 
 
 
 for i in range(len(links)):
-    return_div_html(links[i])
-    tables_html = find_tables_html(return_div_html(links[i]))
+    html_f= return_div_html_url_data(links[i])
+
+    tables_html = find_tables_html(raw_div_html(html_f))
     rows_html = find_rows_html(tables_html)
 
     phone_row_html = find_phone_row_html(rows_html)
